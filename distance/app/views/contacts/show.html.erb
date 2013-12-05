@@ -1,0 +1,43 @@
+<p>
+  <strong>Namn:</strong>
+  <%= @contact.name %>
+</p>
+ 
+<p>
+  <strong>Adress:</strong>
+  <%= @contact.address %>
+</p>
+
+<p>
+  <strong>Eneheter:</strong>
+  <%= @contact.units %>
+</p>
+
+<p>
+  <strong>Longitude:</strong>
+  <%= @contact.longitude %>
+</p>
+
+<p>
+  <strong>Latitude:</strong>
+  <%= @contact.latitude %>
+</p>
+
+<p>Avstånd från dig (<%= @visitor %>) - <%= @contact.name %>: <%= (@contact.distance_to(@visitor) * 1.609344).round(2) %> kilometer </p>
+
+<br>
+
+<%= gmaps4rails(@map) %>
+
+<br>
+<h3>Kontakter i närheten:</h3>
+<ul>
+<% for contact in @contact.nearbys(10) %>
+  <li><%= link_to contact.address, contact %> (<%= (contact.distance * 1.609344).round(2) %> kilometer)</li>
+  <% end %>
+</ul>
+
+
+<%= link_to "Tillbaka", contacts_path %>
+| <%= link_to "Ändra", edit_contact_path(@contact) %>
+

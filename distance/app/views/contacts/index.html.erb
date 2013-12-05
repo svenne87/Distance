@@ -1,0 +1,182 @@
+<h1>Listar alla kontakter</h1>
+ 
+<table>
+  <tr>
+    <th>Namn</th>
+    <th>Adress</th>
+	<th>Enheter</th>
+  </tr>
+  
+  <% @contacts.each do |contact| %>
+    <tr>
+      <td><%= contact.name %></td>
+      <td><%= contact.address %></td>
+      <td><%= contact.units %></td>
+	  <td><%= link_to 'Visa', contact_path(contact) %></td>
+	  <td><%= link_to 'Ändra', edit_contact_path(contact) %></td>
+	  <td><%= link_to 'Ta bort', contact_path(contact), method: :delete, data: { confirm: 'Är du säker?'} %></td>
+    </tr>
+  <% end %>
+</table>
+<br>
+<% if @distanceBetween.is_a? Float %>
+	<%= @distanceBetween %>
+	<%= @info %>
+	<br>
+	<%= @unitsSpent %>
+	<%= @unitsInfo %>
+	
+<% end %>
+<br>
+<br>
+<%= link_to "Ny Kontakt", new_contact_path %>
+
+<br>
+<br>
+
+<%= form_tag contacts_path, :method => :get do %>
+  <p>
+	  <%= text_field_tag :search, params[:search] %>
+	  <%= submit_tag "Sök i stad", :name => nil %>
+ </p>
+ <% end %>
+ 
+<br>
+<%= request.ip %>   
+<%= request.location.city %>    
+<%= request.location.country %>
+<%= @geoip_city = GeoIP.new('lib/GeoLiteCity.dat').city(request.remote_ip) %>  
+kan funka remote
+<br>
+<br>
+<% if @polylines_json.is_a? String%>
+	<%= gmaps({"markers" => {"data" => @polylines_json}, "polylines" => {"data" => @polylines_json} }) %>
+<% else %>
+	<%= gmaps4rails(@maps) %>
+<% end %>
+<br>
+<br>
+
+<h2>Välj kontakter att besöka</h2>
+<p>Det går åt mindre enheter om man besöker de närmast före de som är längre bort.</p>
+<p>Att besöka tex: Bertil, Lina sedan Sten (i den ordningen) gör åt mindre enheter än att besöka Sten, Bertil, Lina (i den ordningen)</p>
+
+<% $nr = 0 %>
+
+
+<% while $nr < 6 do 
+	$nr += 1
+	
+%>
+
+<form id="calculate_form">
+	<select id="<%= $nr %>">
+		<option value=0 selected>-</option>
+		<% @contacts.each do |contact| %>
+    	<option value="<%= contact.units %>"><%= contact.name %></option>
+		<% end %>
+	</select>
+	<% end %>
+	<button id="calc_btn" type="button">Räkna ut</button>
+	<submit>
+</form>
+<br>
+<br>
+<div id="result"></div>
+
+<script>
+$(document).ready(function(){
+	var units = 100;
+	var result = 0;
+	var spentUnits = 0;
+	var array = [];
+	var debug = 0;
+	var nrOfSelect = <%= $nr %>;
+	
+	$('#calc_btn').click(function(){
+		$('#result').html("");
+		array = [];
+	  	spentUnits = 0;	
+		
+		for(var i = 1; i <= nrOfSelect; i++){	
+			var number = parseInt($('#'+i).val());
+			if(number != 0){
+				array.push(number);
+			}
+		}
+		
+		var prev = 0;
+		var sum = 0;
+		var max = array.max();
+		var lastIndex = (array.length - 1);
+		
+		if(array.length == 1){
+			sum = array[0];
+		} else {
+			sum = array[0];
+			
+			for(var i = 0; i < array.length; i++){
+				if (array[i] < array[i+1]){
+					if(array[lastIndex] == array.max()){
+						sum += (array[i+1] - array[i]);
+					} else {
+						sum += (array[i+1] - array[i]);
+					}
+				} else if(array[i] > array[i+1]){
+					sum += (array[i] - array[i+1]);
+				}	
+			}			
+		}
+				
+		result = units - sum;
+		units = units - sum;
+				
+		if(spentUnits > units){
+			$('#result').html("Du har valt att spendera enheter i ordningen: " + array + "<br> Du har inte tillräckligt med enheter!");
+			$('#calc_btn').hide();
+		} else {
+			$('#result').html("Du har valt att spendera enheter i ordningen: " + array + "<br> Du spenderade: " + sum + " enheter.<br> Du har: " + result + " enheter kvar.");
+		}
+				
+				
+	  });
+	  
+	  //find and return max in array
+	  Array.prototype.max = function() {
+	  	var max = this[0];
+	  	var len = this.length;
+	  	for (var i = 1; i < len; i++){
+			if (this[i] > max) max = this[i];
+	  	} 
+	  	return max;
+	  }
+	  
+	  
+});
+
+</script>
+<br>
+<h3>Räkna ut avstånd mellan kontakter</h3>
+
+<%= form_tag contacts_path, :method => :get do %>
+	<%= select_tag(:contactDep,  options_from_collection_for_select(Contact.all, :id, :name)) %>
+	<%= select_tag(:contactDest,  options_from_collection_for_select(Contact.all, :id, :name)) %>
+	<%= submit_tag "Räkna ut avstånd", :name => nil %>
+ <% end %>
+ 
+
+<br>
+<br>
+<br>
+<br>
+
+
+
+
+
+
+
+
+
+
+
